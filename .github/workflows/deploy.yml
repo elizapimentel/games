@@ -26,8 +26,8 @@ jobs:
       - name: Pull da imagem do postgres:16
         run: docker pull postgres:16
       - name: Criar/rodar o container do banco de dados
-        run: docker run -d --name database-container --network my-net -p 5432:5432 -e POSTGRES_DB=gamesdatabase -e POSTGRES_PASSWORD=12345678 -e POSTGRES_USER=postgres postgres:16
+        run: docker run -d --name database-container --network my-net -p 5433:5432 -e POSTGRES_DB=gamesdatabase -e POSTGRES_PASSWORD=12345678 -e POSTGRES_USER=postgres postgres:16
       - name: Pull da imagem da aplicacao ho dockerhub
-        run: docker pull lilibandeira/games-deploy:latest
+        run: docker pull elizapimentel/games-deploy:latest
       - name: Criar/rodar o container da aplicacao
-        run: docker run -d -p 3000:3000 --name app-container --network my-net -e DB_URL="postgresql://postgres:12345678@database-container:5432/gamesdatabase?schema=public" lilibandeira/games-deploy:latest sh -c "npm run migration:run && npm run start"
+        run: docker run -d -p 3000:3000 --name app-container --network my-net -e DB_URL="postgresql://postgres:12345678@database-container:5432/gamesdatabase?schema=public" elizapimentel/games-deploy:latest sh -c "npm run migration:run && npm run start"
