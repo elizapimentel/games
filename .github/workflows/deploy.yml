@@ -30,4 +30,4 @@ jobs:
       - name: Pull da imagem da aplicacao ho dockerhub
         run: docker pull elizapimentel/games-deploy:latest
       - name: Criar/rodar o container da aplicacao
-        run: docker run -d -p 3000:3000 --name app-container --network my-net -e DB_URL="postgresql://postgres:12345678@database-container:5432/gamesdatabase?schema=public" elizapimentel/games-deploy:latest sh -c "npm run migration:run && npm run start"
+        run: docker run -d -p 3000:3000 --name games-container --network my-net -e DB_URL="postgresql://postgres:12345678@database-container:5432/gamesdatabase?schema=public" elizapimentel/games-deploy:latest sh -c "npm run migration:run && npm run start"
