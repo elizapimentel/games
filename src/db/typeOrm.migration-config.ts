@@ -6,12 +6,7 @@ config();  // Carrega as variáveis de ambiente do .env
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
-  host: process.env.DB_HOST,
-  port: parseInt(process.env.DB_PORT || "5432"),
-  username: process.env.DB_USER,
-  password: String(process.env.DB_PASSWORD || ''),
-  database: process.env.DB_NAME,
-  schema: 'public',
+  url: process.env.DB_URL,
   entities: [GameEntity],
   synchronize: false,
   migrations: [__dirname + '/migrations/*.ts'],
