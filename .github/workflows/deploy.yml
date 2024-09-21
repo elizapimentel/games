@@ -6,84 +6,50 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: [ubuntu-latest]
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
-
-      - name: Login no Docker Hub
+      - name: Login no meu docker hub
         run: docker login -u ${{ secrets.DOCKER_USER }} -p ${{ secrets.DOCKER_PASS }}
-
-      - name: Buildar a imagem do Docker
+      - name: Buildar a imagem do docker
         run: docker build -t elizapimentel/games-deploy .
-
-      - name: Publicar a imagem da aplicação no Docker Hub
+      - name: Publicar a imagem da aplicação no docker hub
         run: docker push elizapimentel/games-deploy:latest
 
   deploy:  
     needs: build
-    runs-on: [self-hosted, aws-ec2] 
+    runs-on: [aws-ec2]
     steps: 
-      - name: Criar network (se não existir)
-        run: |
-          if ! docker network ls | grep -w my-net; then
-            docker network create my-net
-          else
-            echo "Rede my-net já existe."
-          fi
-
-      - name: Parar e remover contêiner existente do banco de dados (se existir)
-        run: |
-          if docker ps -a --format '{{.Names}}' | grep -w database-container; then
-            docker stop database-container
-            docker rm database-container
-            echo "Contêiner database-container removido."
-          else
-            echo "Contêiner database-container não existe."
-          fi
+      - name: Criar network
+        run: docker network create my-net || true
 
       - name: Pull da imagem do postgres:16
         run: docker pull postgres:16
 
-      - name: Criar/rodar o contêiner do banco de dados
+      - name: Criar/rodar o container do banco de dados
         run: |
-          docker run -d \
-            --name database-container \
-            --network my-net \
-            -p 5433:5432 \
-            -e POSTGRES_DB=gamesdatabase \
-            -e POSTGRES_PASSWORD=12345678 \
-            -e POSTGRES_USER=postgres \
-            postgres:16
-
-      - name: Esperar o Postgres estar pronto
-        run: |
-          apt-get update && apt-get install -y netcat
-          until nc -z database-container 5432; do
-            echo "Esperando o Postgres iniciar..."
-            sleep 5
-          done
-          echo "Postgres está pronto."
-
-      - name: Parar e remover contêiner existente da aplicação (se existir)
-        run: |
-          if docker ps -a --format '{{.Names}}' | grep -w games-container; then
-            docker stop games-container
-            docker rm games-container
-            echo "Contêiner games-container removido."
+          if [ ! "$(docker ps -q -f name=database-container)" ]; then
+            if [ "$(docker ps -aq -f status=exited -f name=database-container)" ]; then
+              # Limpa o contêiner parado, se houver
+              docker rm database-container
+            fi
+            docker run -d --name database-container --network my-net -p 5433:5432 -e POSTGRES_DB=gamesdatabase -e POSTGRES_PASSWORD=12345678 -e POSTGRES_USER=postgres postgres:16
           else
-            echo "Contêiner games-container não existe."
+            echo "O contêiner do banco de dados já está em execução."
           fi
 
-      - name: Pull da imagem da aplicação no Docker Hub
+      - name: Pull da imagem da aplicacao ho dockerhub
         run: docker pull elizapimentel/games-deploy:latest
 
-      - name: Criar/rodar o contêiner da aplicação
+      - name: Criar/rodar o container da aplicacao
         run: |
-          docker run -d \
-            -p 3000:3000 \
-            --name games-container \
-            --network my-net \
-            -e DB_URL="postgresql://postgres:12345678@database-container:5432/gamesdatabase?schema=public" \
-            elizapimentel/games-deploy:latest \
-            sh -c "npm run migration:run && npm run start"
+        if [ ! "$(docker ps -q -f name=games-container)" ]; then
+          if [ "$(docker ps -aq -f status=exited -f name=games-container)" ]; then
+            # Limpa o contêiner parado, se houver
+            docker rm games-container
+          fi
+          docker run -d -p 3000:3000 --name games-container --network my-net -e DB_URL="postgresql://postgres:12345678@database-container:5432/gamesdatabase?schema=public" elizapimentel/games-deploy:latest sh -c "npm run migration:run && npm run start"
+        else
+          echo "O contêiner da aplicação já está em execução."
+        fi
