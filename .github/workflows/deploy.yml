@@ -44,12 +44,12 @@ jobs:
 
       - name: Criar/rodar o container da aplicacao
         run: |
-        if [ ! "$(docker ps -q -f name=games-container)" ]; then
-          if [ "$(docker ps -aq -f status=exited -f name=games-container)" ]; then
-            # Limpa o contêiner parado, se houver
-            docker rm games-container
+          if [ ! "$(docker ps -q -f name=games-container)" ]; then
+            if [ "$(docker ps -aq -f status=exited -f name=games-container)" ]; then
+              # Limpa o contêiner parado, se houver
+              docker rm games-container
+            fi
+            docker run -d -p 3000:3000 --name games-container --network my-net -e DB_URL="postgresql://postgres:12345678@database-container:5432/gamesdatabase?schema=public" elizapimentel/games-deploy:latest sh -c "npm run migration:run && npm run start"
+          else
+            echo "O contêiner da aplicação já está em execução."
           fi
-          docker run -d -p 3000:3000 --name games-container --network my-net -e DB_URL="postgresql://postgres:12345678@database-container:5432/gamesdatabase?schema=public" elizapimentel/games-deploy:latest sh -c "npm run migration:run && npm run start"
-        else
-          echo "O contêiner da aplicação já está em execução."
-        fi
